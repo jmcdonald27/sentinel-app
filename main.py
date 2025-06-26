@@ -8,6 +8,8 @@ from kivy.uix.screenmanager import ScreenManager
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.button import MDButton, MDButtonText
 from kivy.lang import Builder
+from bleak import BleakScanner
+import asyncio
 
 from kivymd.uix.dialog import (
     MDDialog,
@@ -25,12 +27,16 @@ from kivymd.uix.list import (
 )
 
 from kivy.uix.widget import Widget
+from kivymd.uix.card import MDCard
+from kivy.properties import StringProperty
+
+
 
 
 kv = """
 <Logo>:
     Image:
-        source: 'Images/logo.png'
+        source: 'Images/Logo.png'
         width: root.width - 20
         height: dp(100)
         allow_stretch: True
@@ -43,6 +49,10 @@ kv = """
     md_bg_color: self.theme_cls.backgroundColor
     MDAnchorLayout:
         Logo:
+        MDIconButton:
+            icon: "cog"
+            style: "standard"
+            pos: 10, 0
         MDGridLayout:
             cols: 1
             row_force_default: True
@@ -76,15 +86,39 @@ kv = """
     md_bg_color: self.theme_cls.backgroundColor
     Logo:
     MDButton:
-        on_touch_down: app.choose_device()
+        on_release: app.choose_device()
         style: "elevated"
-        pos_hint: {"center_x": .5, "center_y": .5}
+        pos_hint: {"center_x": .3, "center_y": .7}
 
         MDButtonIcon:
             icon: "plus"
 
         MDButtonText:
-            text: "Select Device"
+            text: "Device"
+
+    MDButton:
+        on_release: app.choose_action()
+        style: "elevated"
+        pos_hint: {"center_x": .7, "center_y": .7}
+
+        MDButtonText:
+            text: "Action"
+
+    MDCard:
+        padding: "4dp"
+        size_hint: 0.8, 0.5
+        pos_hint: {"center_x": .5, "center_y": .3}
+        
+        FloatLayout:
+
+            MDLabel:
+                text: "output"
+                size_hint: 1, 1
+                pos_hint: {"x": 0, "top": 1}
+                halign: "left"
+                valign: "top"
+                size: self.texture_size
+                theme_text_color: "Secondary"
 
 """
 
@@ -92,6 +126,11 @@ sm = ScreenManager()
 
 class Logo(MDWidget):
     pass
+
+class MyCard(MDCard):
+    '''Implements a material card.'''
+
+    text = StringProperty()
 
 class LoginScreen(MDScreen):
     def validate_login(instance, value, username, password):
@@ -122,6 +161,9 @@ class SentinelApp(MDApp):
 
         return sm
     def choose_device(self):
+        #asyncio.run(SentinelApp.device_scan())
+        #for device in devices:
+        #    print(device)
         self.dialog = MDDialog(
             # -----------------------Headline text-------------------------
             MDDialogHeadlineText(
@@ -172,6 +214,56 @@ class SentinelApp(MDApp):
         #    print(self.current_device)
         self.dialog.open()
 
+    def choose_action(self):
+        self.dialog = MDDialog(
+            # -----------------------Headline text-------------------------
+            MDDialogHeadlineText(
+                text="Choose Device",
+            ),
+            # -----------------------Supporting text-----------------------
+            # -----------------------Custom content------------------------
+            MDDialogContentContainer(
+                MDDivider(),
+                MDListItem(
+                    MDListItemSupportingText(
+                        text="Action 1",
+                    ),
+                    id="1",
+                    theme_bg_color="Custom",
+                    on_release=self.change_color
+                ),
+                MDListItem(
+                    MDListItemSupportingText(
+                        text="Action 2",
+                    ),
+                    id="2",
+                    theme_bg_color="Custom",
+                    on_release=self.change_color
+                ),
+                MDDivider(),
+                orientation="vertical",
+            ),
+            # ---------------------Button container------------------------
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(
+                    MDButtonText(text="Cancel"),
+                    style="text",
+                    on_release=self.close_dialog
+                ),
+                MDButton(
+                    MDButtonText(text="Confirm"),
+                    style="text",
+                    on_release=self.confirm_device
+                ),
+                spacing="8dp",
+            ),
+            # -------------------------------------------------------------
+        )
+        #if(self.current_device):
+        #    self.ids.current_device.md_bg_color = [0.2, 0.6, 0.8, 1]
+        #    print(self.current_device)
+        self.dialog.open()
     
     def close_dialog(self, *args):
         self.dialog.dismiss()
@@ -190,6 +282,12 @@ class SentinelApp(MDApp):
 
         # Update the last clicked button reference
         self.last_clicked_button = instance
+
+    async def device_scan():
+        print("AAAA")
+        devices = await BleakScanner.discover(timeout = 5.0, return_adv = True)
+        print("BBBB")
+        print(devices)
     
 if __name__ == '__main__':
     SentinelApp().run()
